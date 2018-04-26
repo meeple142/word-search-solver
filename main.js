@@ -129,6 +129,9 @@ function makeWordsFromLines(lines) {
     return words;
 }
 
+//first thing we need to do is to map the board to a 2d array of letterObjs {letter:"",x:#,y:#}
+//that way after we slice the words we can make word obj
+
 // var board = verticalBoard;
 var board = diagnalDownBoardTall;
 var linesVert = getVerticalLines(board);
@@ -152,3 +155,6 @@ var words = makeWordsFromLines(allLines);
 
 
 fs.writeFileSync('out.json',JSON.stringify(words))
+// make word objs {value:"abc",start:{x:#,y:#},end:{x:#,y:#}}
+
+//check if the words are actually words in the dictionary list
