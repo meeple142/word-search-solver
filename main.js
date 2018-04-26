@@ -1,3 +1,4 @@
+var fs= require('fs');
 var diagnalDownBoardWide = [
     [5, 6, 7, 8, 9, 1, 2],
     [4, 5, 6, 7, 8, 9, 1],
@@ -106,6 +107,28 @@ function getDiagnals(board) {
     return linesDown.concat(linesUp);
 }
 
+function makeWordsFromLines(lines) {
+    var words;
+
+    words = lines.reduce((words, line) => {
+
+        // var lengthOptions = Array(line.length)
+        // .fill(1)
+        // .map((d,i)=>line.slice(i));
+
+        //this is way faster
+        for (i = 0; i < line.length; ++i) {
+            for (j = i + 1; j < line.length; ++j) {
+                words.push(line.slice(i, j));
+            }
+        }
+
+
+        return words;
+    }, []);
+    return words;
+}
+
 // var board = verticalBoard;
 var board = diagnalDownBoardTall;
 var linesVert = getVerticalLines(board);
@@ -120,3 +143,12 @@ console.log(board);
 var allLines = board.concat(linesVert, linesDiag);
 console.log("allLines:");
 console.log(allLines);
+
+//this is where we reverse them if we want to
+//just do a map to reverse and concat the lines
+
+//convert the lines in tow words
+var words = makeWordsFromLines(allLines);
+
+
+fs.writeFileSync('out.json',JSON.stringify(words))
