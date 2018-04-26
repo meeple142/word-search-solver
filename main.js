@@ -158,3 +158,7 @@ fs.writeFileSync('out.json',JSON.stringify(words))
 // make word objs {value:"abc",start:{x:#,y:#},end:{x:#,y:#}}
 
 //check if the words are actually words in the dictionary list
+// just a filter -- well I guess it could be a a bininary search 
+// also could line up dups in the word list first, because the dictionary is so big
+
+//then just make an svg doc with all the letters and the words highlighted
