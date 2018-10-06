@@ -220,3 +220,5 @@ fs.writeFileSync('out.json', stringify(stackedWords, null, 4))
 // also could line up dups in the word list first, because the dictionary is so big
 
 //then just make an svg doc with all the letters and the words highlighted
+
+// refactor with more functions
