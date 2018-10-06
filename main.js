@@ -1,10 +1,13 @@
-var fs= require('fs');
+var fs = require('fs'),
+    stringify = require('json-stringify-pretty-compact'),
+    binarySearch = require('binary-search');
 var diagnalDownBoardWide = [
-    [5, 6, 7, 8, 9, 1, 2],
-    [4, 5, 6, 7, 8, 9, 1],
-    [3, 4, 5, 6, 7, 8, 9],
-    [2, 3, 4, 5, 6, 7, 8],
-    [1, 2, 3, 4, 5, 6, 7]],
+        [5, 6, 7, 8, 9, 1, 2],
+        [4, 5, 6, 7, 8, 9, 1],
+        [3, 4, 5, 6, 7, 8, 9],
+        [2, 3, 4, 5, 6, 7, 8],
+        [1, 2, 3, 4, 5, 6, 7]
+    ],
     diagnalDownBoardTall = [
         [7, 1, 2, 3],
         [6, 7, 1, 2],
@@ -12,7 +15,8 @@ var diagnalDownBoardWide = [
         [4, 5, 6, 7],
         [3, 4, 5, 6],
         [2, 3, 4, 5],
-        [1, 2, 3, 4]],
+        [1, 2, 3, 4]
+    ],
     diagnalUpBoardWide = [
         [4, 5, 6, 7, 8, 9, 1],
         [5, 6, 7, 8, 9, 1, 2],
@@ -22,7 +26,8 @@ var diagnalDownBoardWide = [
         [9, 1, 2, 3, 4, 5, 6],
         [1, 2, 3, 4, 5, 6, 7],
         [2, 3, 4, 5, 6, 7, 8],
-        [3, 4, 5, 6, 7, 8, 9]],
+        [3, 4, 5, 6, 7, 8, 9]
+    ],
     diagnalUpBoardTall = [
         [5, 6, 7, 1],
         [6, 7, 1, 2],
@@ -30,7 +35,8 @@ var diagnalDownBoardWide = [
         [1, 2, 3, 4],
         [2, 3, 4, 5],
         [3, 4, 5, 6],
-        [4, 5, 6, 7]],
+        [4, 5, 6, 7]
+    ],
     verticalBoard = [
         [1, 2, 3, 4, 5, 6, 7],
         [1, 2, 3, 4, 5, 6, 7],
@@ -38,6 +44,18 @@ var diagnalDownBoardWide = [
         [1, 2, 3, 4, 5, 6, 7],
         [1, 2, 3, 4, 5, 6, 7]
     ];
+
+function makeLeterObjects(board) {
+    return board.map((row, iRow) => {
+        return row.map((letter, iLetter) => {
+            return {
+                x: iRow,
+                y: iLetter,
+                letter: letter
+            };
+        });
+    });
+}
 
 
 function getVerticalLines(board) {
@@ -112,50 +130,90 @@ function makeWordsFromLines(lines) {
 
     words = lines.reduce((words, line) => {
 
-        // var lengthOptions = Array(line.length)
-        // .fill(1)
-        // .map((d,i)=>line.slice(i));
+            // var lengthOptions = Array(line.length)
+            // .fill(1)
+            // .map((d,i)=>line.slice(i));
 
-        //this is way faster
-        for (i = 0; i < line.length; ++i) {
-            for (j = i + 1; j < line.length; ++j) {
-                words.push(line.slice(i, j));
+            //this is way faster
+            for (i = 0; i < line.length; ++i) {
+                for (j = i + 1; j < line.length; ++j) {
+                    words.push(line.slice(i, j));
+                }
             }
-        }
 
 
-        return words;
-    }, []);
+            return words;
+        }, [])
+        .map(word => {
+            var start = word[0],
+                end = word[word.length - 1],
+                wordOut = {
+                    start: {
+                        x: start.x,
+                        y: start.y
+                    },
+                    end: {
+                        x: end.x,
+                        y: end.y
+                    },
+                    value: word.reduce((word, letter) => word + letter.letter, '')
+                };
+            return wordOut;
+        });
     return words;
 }
+
+// var board = verticalBoard;
+var board = diagnalDownBoardTall;
+
 
 //first thing we need to do is to map the board to a 2d array of letterObjs {letter:"",x:#,y:#}
 //that way after we slice the words we can make word obj
 
-// var board = verticalBoard;
-var board = diagnalDownBoardTall;
+board = makeLeterObjects(board);
 var linesVert = getVerticalLines(board);
 var linesDiag = getDiagnals(board);
 
 
 console.log("board:");
-console.log(board);
+// console.log(board);
 
 // we need the horiz and the vert and the diag
 //horiz comes from the board it's self
 var allLines = board.concat(linesVert, linesDiag);
 console.log("allLines:");
-console.log(allLines);
+console.log(stringify(allLines));
 
 //this is where we reverse them if we want to
 //just do a map to reverse and concat the lines
 
-//convert the lines in tow words
-var words = makeWordsFromLines(allLines);
+//convert the lines into words
+var words = makeWordsFromLines(allLines),
+    stackedWords = words.reduce((stacks, word) => {
+        var wordStack = stacks.find(stack =>{
+            return stack.value === word.value;
+        });
 
+        if(wordStack === undefined){
+            stacks.push({
+                value: word.value,
+                locations :[]
+            });
+            wordStack = stacks[stacks.length - 1];
+        }
 
-fs.writeFileSync('out.json',JSON.stringify(words))
-// make word objs {value:"abc",start:{x:#,y:#},end:{x:#,y:#}}
+        wordStack.locations.push({
+            start : word.start,
+            end: word.end
+        });
+        //also the length 1 words will have a bunch of repeat locations so filter them out or just remove the length ones all together
+
+        return stacks;
+    }, []);
+
+console.log(stringify(words))
+//also the length 1 words will have a bunch of repeat locations so filter them out or just remove the length ones all together
+fs.writeFileSync('out.json', stringify(stackedWords, null, 4))
 
 //check if the words are actually words in the dictionary list
 // just a filter -- well I guess it could be a a bininary search 

@@ -1,0 +1,24 @@
+{
+  "name": "word-search-solver",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "dependencies": {
+    "binary-search": "^1.3.4",
+    "json-stringify-pretty-compact": "^1.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/meeple142/word-search-solver.git"
+  },
+  "author": "Joshua McKinney",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/meeple142/word-search-solver/issues"
+  },
+  "homepage": "https://github.com/meeple142/word-search-solver#readme"
+}
