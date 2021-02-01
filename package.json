@@ -5,7 +5,13 @@
   "main": "main.js",
   "dependencies": {
     "binary-search": "^1.3.4",
-    "json-stringify-pretty-compact": "^1.2.0"
+    "json-stringify-pretty-compact": "^1.2.0",
+    "lodash.groupby": "^4.6.0",
+    "node-fetch": "^2.6.1",
+    "svg.js": "^2.7.1",
+    "svgdom": "^0.1.8",
+    "trie": "^0.2.1",
+    "websters-english-dictionary": "^2.0.0"
   },
   "devDependencies": {},
   "scripts": {

@@ -4,7 +4,11 @@ var fs = require('fs'),
     stringify = s => pretty(s, null, 4),
     log = x => console.log(stringify(x)),
     binarySearch = require('binary-search'),
-    groupby = require("lodash.groupby");
+    groupby = require("lodash.groupby"),
+    wordTrie = require("./getDefaultWordTrie"),
+    Classes = require("./WordClass"),
+    readInBoard = require("./readInBoard");
+
 var diagnalDownBoardWide = [
     [5, 6, 7, 8, 9, 1, 2],
     [4, 5, 6, 7, 8, 9, 1],
@@ -47,15 +51,28 @@ var diagnalDownBoardWide = [
         [1, 2, 3, 4, 5, 6, 7],
         [1, 2, 3, 4, 5, 6, 7],
         [1, 2, 3, 4, 5, 6, 7]
+    ],
+    testBoard = [
+        ["L", "Y", "M", "T", "H", "A", "T"],
+        ["I", "T", "O", "H", "P", "Y", "C"],
+        ["G", "H", "D", "T", "P", "R", "R"],
+        ["N", "E", "S", "A", "B", "U", "A"],
+        ["U", "M", "L", "K", "S", "J", "S"],
+        ["F", "S", "L", "H", "L", "T", "S"],
+        ["Y", "T", "H", "E", "Y", "I", "D"]
     ];
+//https://api.razzlepuzzles.com/wordsearch
+//copy(Array.from(document.querySelectorAll(".row")).map(r => r.innerText.replace(/\s+/g,'')).join('\n'))
+//copy(Array.from(document.querySelectorAll(".word")).map(w => w.innerText).join("\n"))
+var testBoardWords = ["BASE", "CRASS", "FUNGI", "ILKS", "JURY", "MODS", "PALSY", "RUSH", "STY", "THAT", "THEM", "THEY"];
 
 function makeLeterObjects(board) {
     return board.map((row, iRow) => {
         return row.map((letter, iLetter) => {
             return {
-                x: iRow,
-                y: iLetter,
-                letter: letter
+                x: iLetter,
+                y: iRow,
+                letter: letter.toLowerCase()
             };
         });
     });
@@ -150,20 +167,15 @@ function makeWordsFromLines(lines) {
     }, [])
         .map(word => {
             var start = word[0],
-                end = word[word.length - 1],
-                wordOut = {
-                    location: {
-                        start: {
-                            x: start.x,
-                            y: start.y
-                        },
-                        end: {
-                            x: end.x,
-                            y: end.y
-                        }
-                    },
-                    value: word.reduce((word, letter) => word + letter.letter, '')
-                };
+                end = word[word.length - 1];
+            valueOut = word.reduce((word, letter) => word + letter.letter, '');
+            wordOut = new Classes.Word(valueOut,
+                new Classes.Location(
+                    new Classes.Point(start.x, start.y),
+                    new Classes.Point(end.x, end.y)
+                )
+            );
+
             return wordOut;
         });
     return words;
@@ -181,13 +193,15 @@ function uniqueWords(locationIn, i, whole) {
 }
 
 // var board = verticalBoard;
-var board = diagnalDownBoardTall;
-
+// var board = diagnalDownBoardTall;
+// var board = testBoard;
+var board = readInBoard("./customBoard.txt");
 
 //first thing we need to do is to map the board to a 2d array of letterObjs {letter:"",x:#,y:#}
 //that way after we slice the words we can make word obj
 
 board = makeLeterObjects(board);
+log(board);
 var linesVert = getVerticalLines(board);
 var linesDiag = getDiagnals(board);
 
@@ -233,12 +247,51 @@ var stackedPotentialWords = potentialWords.reduce((stacks, word) => {
 fs.writeFileSync('potentialWords.json', stringify(potentialWords))
 fs.writeFileSync('stackedPotentialWords.json', stringify(stackedPotentialWords))
 
+function reverseString(stringIn) {
+    var sOut = '';
+    for (let i = stringIn.length - 1; i > -1; i--) {
+        sOut += stringIn[i];
+    }
+
+    return sOut;
+}
+
+var realWords = stackedPotentialWords.reduce((wordsOut, word) => {
+    if (word.value === "ESAB") {
+        log(word);
+    }
+
+
+    if (wordTrie.lookup(word.value)) {
+        wordsOut.push(word);
+    } else {
+        var flipedWord = reverseString(word.value);
+        if (wordTrie.lookup(flipedWord)) {
+
+            wordsOut.push(
+                {
+                    value: flipedWord,
+                    locations: word.locations.map(l => {
+                        return new Classes.Location(l.end, l.start);
+                    })
+                }
+            );
+        };
+    }
+    return wordsOut;
+}, [])
+    .sort((a, b) => a.value.localeCompare(b.value));
+fs.writeFileSync('realWords.json', stringify(realWords));
+console.log("Wrote: realWords.json");
+
 //check if the words are actually words in the dictionary list
 //also reverse each word if that option is on and check the reverse
+//i did varify that we don't have to reverse lines just words
+//more efficient here
 
 // just a filter -- well I guess it could be a a bininary search 
-// also could line up dups in the word list first, because the dictionary is so big
+
 
 //then just make an svg doc with all the letters and the words highlighted
 
-// refactor with more functions
+// refactor with more functions and files
