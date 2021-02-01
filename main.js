@@ -1,13 +1,17 @@
+
 var fs = require('fs'),
-    stringify = require('json-stringify-pretty-compact'),
-    binarySearch = require('binary-search');
+    pretty = require('json-stringify-pretty-compact'),
+    stringify = s => pretty(s, null, 4),
+    log = x => console.log(stringify(x)),
+    binarySearch = require('binary-search'),
+    groupby = require("lodash.groupby");
 var diagnalDownBoardWide = [
-        [5, 6, 7, 8, 9, 1, 2],
-        [4, 5, 6, 7, 8, 9, 1],
-        [3, 4, 5, 6, 7, 8, 9],
-        [2, 3, 4, 5, 6, 7, 8],
-        [1, 2, 3, 4, 5, 6, 7]
-    ],
+    [5, 6, 7, 8, 9, 1, 2],
+    [4, 5, 6, 7, 8, 9, 1],
+    [3, 4, 5, 6, 7, 8, 9],
+    [2, 3, 4, 5, 6, 7, 8],
+    [1, 2, 3, 4, 5, 6, 7]
+],
     diagnalDownBoardTall = [
         [7, 1, 2, 3],
         [6, 7, 1, 2],
@@ -112,10 +116,10 @@ function getDiagnals(board) {
         downPadded = padBoard(board, dummyChar, true),
         upPadded = padBoard(board, dummyChar, false);
 
-    console.log("downPadded:");
-    console.log(downPadded);
-    console.log("upPadded:");
-    console.log(upPadded);
+    //console.log("downPadded:");
+    //console.log(downPadded);
+    //console.log("upPadded:");
+    //console.log(upPadded);
 
     //now all we need to get the vert lines and remove the dummy chars
     linesDown = removeDummyChar(getVerticalLines(downPadded), dummyChar);
@@ -130,37 +134,50 @@ function makeWordsFromLines(lines) {
 
     words = lines.reduce((words, line) => {
 
-            // var lengthOptions = Array(line.length)
-            // .fill(1)
-            // .map((d,i)=>line.slice(i));
+        // var lengthOptions = Array(line.length)
+        // .fill(1)
+        // .map((d,i)=>line.slice(i));
 
-            //this is way faster
-            for (i = 0; i < line.length; ++i) {
-                for (j = i + 1; j < line.length; ++j) {
-                    words.push(line.slice(i, j));
-                }
+        //this is way faster
+        for (i = 0; i < line.length; ++i) {
+            for (j = i + 1; j < line.length; ++j) {
+                words.push(line.slice(i, j));
             }
+        }
 
 
-            return words;
-        }, [])
+        return words;
+    }, [])
         .map(word => {
             var start = word[0],
                 end = word[word.length - 1],
                 wordOut = {
-                    start: {
-                        x: start.x,
-                        y: start.y
-                    },
-                    end: {
-                        x: end.x,
-                        y: end.y
+                    location: {
+                        start: {
+                            x: start.x,
+                            y: start.y
+                        },
+                        end: {
+                            x: end.x,
+                            y: end.y
+                        }
                     },
                     value: word.reduce((word, letter) => word + letter.letter, '')
                 };
             return wordOut;
         });
     return words;
+}
+
+function uniqueWords(locationIn, i, whole) {
+    var indexFound = whole.findIndex(location => {
+        var sx = locationIn.start.x == location.start.x,
+            sy = locationIn.start.y == location.start.y,
+            ex = locationIn.end.x == location.end.x,
+            ey = locationIn.end.y == location.end.y
+        return sx && sy && ex && ey;
+    });
+    return i === indexFound;
 }
 
 // var board = verticalBoard;
@@ -175,47 +192,50 @@ var linesVert = getVerticalLines(board);
 var linesDiag = getDiagnals(board);
 
 
-console.log("board:");
-// console.log(board);
+// console.log("board:");
+// console.log(pretty(board));
 
 // we need the horiz and the vert and the diag
 //horiz comes from the board it's self
 var allLines = board.concat(linesVert, linesDiag);
-console.log("allLines:");
-console.log(stringify(allLines));
+//console.log("allLines:");
+//console.log(stringify(allLines));
 
-//this is where we reverse them if we want to
-//just do a map to reverse and concat the lines
+//this is where to split lines into multiple lines if the board has null chars in it
 
 //convert the lines into words
-var words = makeWordsFromLines(allLines),
-    stackedWords = words.reduce((stacks, word) => {
-        var wordStack = stacks.find(stack =>{
-            return stack.value === word.value;
-        });
+var potentialWords = makeWordsFromLines(allLines);
+var stackedPotentialWords = potentialWords.reduce((stacks, word) => {
+    var wordStack = stacks.find(stack => {
+        return stack.value === word.value;
+    });
 
-        if(wordStack === undefined){
-            stacks.push({
-                value: word.value,
-                locations :[]
-            });
-            wordStack = stacks[stacks.length - 1];
+    if (wordStack === undefined) {
+        stacks.push({
+            value: word.value,
+            locations: []
+        });
+        wordStack = stacks[stacks.length - 1];
+    }
+
+    wordStack.locations.push(word.location);
+    return stacks;
+}, [])
+    .sort((a, b) => a.value.localeCompare(b.value))
+    .map(word => {
+        //the length 1 words will have a bunch of repeat locations so just remove doubles
+        if (word.value.length === 1) {
+            word.locations = word.locations.filter(uniqueWords)
         }
+        return word;
+    });
 
-        wordStack.locations.push({
-            start : word.start,
-            end: word.end
-        });
-        //also the length 1 words will have a bunch of repeat locations so filter them out or just remove the length ones all together
-
-        return stacks;
-    }, []);
-
-console.log(stringify(words))
-//also the length 1 words will have a bunch of repeat locations so filter them out or just remove the length ones all together
-fs.writeFileSync('out.json', stringify(stackedWords, null, 4))
+fs.writeFileSync('potentialWords.json', stringify(potentialWords))
+fs.writeFileSync('stackedPotentialWords.json', stringify(stackedPotentialWords))
 
 //check if the words are actually words in the dictionary list
+//also reverse each word if that option is on and check the reverse
+
 // just a filter -- well I guess it could be a a bininary search 
 // also could line up dups in the word list first, because the dictionary is so big
 
